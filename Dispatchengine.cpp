@@ -354,28 +354,72 @@ void DispatchEngine::printActiveTrips() const
          << endl;
 }
 
-int DispatchEngine::calculateDispatchScore(Driver *driver, int riderLocation,
-                                           int sameZoneBonus, int crossZonePenalty) const
+int DispatchEngine::calculateDispatchScore(
+    Driver *driver,
+    int riderLocation,
+    int sameZoneBonus,
+    int crossZonePenalty) const
 {
-    // Basic implementation - calculate distance from driver to rider pickup
-    int distance = city->getShortestDistance(driver->getCurrentLocation(), riderLocation);
-    if (distance == -1)
-    {
-        return INT_MAX; // No path exists
-    }
+    int distance = city->getShortestDistance(
+        driver->getCurrentLocation(),
+        riderLocation);
 
-    // Adjust score based on zones
+    if (distance == -1)
+        return INT_MAX;
+
     int driverZone = driver->getZoneId();
     int riderZone = city->getZone(riderLocation);
 
     if (driverZone == riderZone)
-    {
-        distance += sameZoneBonus; // Bonus for same zone
-    }
+        distance += sameZoneBonus;
     else
-    {
-        distance += crossZonePenalty; // Penalty for different zone
-    }
+        distance += crossZonePenalty;
 
     return distance;
+}
+
+Driver *DispatchEngine::findBestDriver(int riderPickupLocation)
+{
+    Driver *bestDriver = nullptr;
+    int bestScore = INT_MAX;
+
+    for (int i = 0; i < driverCount; i++)
+    {
+        if (!drivers[i]->isAvailable())
+            continue;
+
+        int score = calculateDispatchScore(
+            drivers[i],
+            riderPickupLocation,
+            DEFAULT_SAME_ZONE_BONUS,
+            DEFAULT_CROSS_ZONE_PENALTY);
+
+        if (score < bestScore)
+        {
+            bestScore = score;
+            bestDriver = drivers[i];
+        }
+    }
+    return bestDriver;
+}
+Trip* DispatchEngine::requestTrip(const Rider& rider)
+{
+    int distance = city->getShortestDistance(
+        rider.getPickupLocation(),
+        rider.getDropoffLocation()
+    );
+
+    if (distance == -1)
+        return nullptr;
+
+    Trip* trip = handleTripRequest(rider, distance);
+
+    Driver* bestDriver = findBestDriver(rider.getPickupLocation());
+    if (!bestDriver)
+        return trip;
+
+    assignDriverToTrip(trip->getId(), bestDriver->getId());
+    startTrip(trip->getId());
+
+    return trip;
 }
