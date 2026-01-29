@@ -66,6 +66,8 @@ public:
     bool removeDriver(int driverId);
     Driver *findDriverById(int driverId) const;
 
+    Trip *requestTrip(const Rider &rider);
+
     // ===== Rider Management =====
     Rider *findRiderById(int riderId) const; // 🔧 ADDED
 
@@ -74,6 +76,7 @@ public:
     Trip *handleTripRequest(const Rider &rider, int distance);
 
     bool assignDriverToTrip(int tripId, int driverId);
+    Driver *findBestDriver(int riderPickupLocation);
 
     bool startTrip(int tripId);    // 🔧 ADDED
     bool completeTrip(int tripId); // 🔧 ADDED
